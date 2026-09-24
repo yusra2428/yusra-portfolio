@@ -27,7 +27,8 @@ export const Contact: React.FC = () => {
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitted, setSubmitted] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
-
+const [sending, setSending] = useState(false);
+const [sendError, setSendError] = useState('');
   const validate = (): boolean => {
     const errs: FormErrors = {};
     if (!formData.name.trim()) {
@@ -51,12 +52,36 @@ export const Contact: React.FC = () => {
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validate()) {
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!validate()) return;
+
+  setSending(true);
+  setSendError('');
+  try {
+    const response = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        access_key: '48e42f7b-787b-4f65-9124-b53480e349b3',
+        name: formData.name,
+        email: formData.email,
+        subject: formData.subject,
+        message: formData.message,
+      }),
+    });
+    const result = await response.json();
+    if (result.success) {
       setSubmitted(true);
+    } else {
+      setSendError('Sorry, your message could not be sent. Please try again or email me directly.');
     }
-  };
+  } catch {
+    setSendError('Sorry, something went wrong. Please try again or email me directly.');
+  } finally {
+    setSending(false);
+  }
+};
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText(PERSONAL_INFO.email);
@@ -227,7 +252,7 @@ export const Contact: React.FC = () => {
                     Thank You, {formData.name}!
                   </h3>
                   <p className="text-sm text-[#66736B] max-w-md mx-auto leading-relaxed">
-                    Your inquiry has been formatted. Since this is a static showcase portfolio, you can launch your default email client right now to transmit this message directly to Yusra.
+                    Your message has been sent successfully. I'll get back to you as soon as possible.
                   </p>
 
                   <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -376,17 +401,24 @@ export const Contact: React.FC = () => {
                   </div>
 
                   {/* Submit Button */}
+                  {sendError && (
+  <p className="text-xs text-red-600 flex items-center space-x-1">
+    <AlertCircle className="w-3.5 h-3.5" />
+    <span>{sendError}</span>
+  </p>
+)}
                   <button
                     id="submit-contact-button"
                     type="submit"
+                    disabled={sending}
                     className="w-full py-4 px-6 rounded-2xl bg-[#073B2A] text-[#F5F0DE] hover:bg-[#0B4A35] font-semibold text-sm sm:text-base transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center space-x-2 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#F5B51B]"
                   >
-                    <span>Send Message</span>
+                    <span>{sending ? 'Sending...' : 'Send Message'}</span>.
                     <Send className="w-4 h-4 text-[#F5B51B]" />
                   </button>
 
                   <p className="text-[11px] text-[#66736B] text-center pt-1">
-                    Direct inquiries are welcomed. Form includes email fallback for quick transmission.
+                   Direct inquiries are welcomed. I'll get back to you as soon as possible.
                   </p>
 
                 </form>
